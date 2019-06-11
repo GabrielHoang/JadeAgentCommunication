@@ -25,6 +25,8 @@ public class BookSellerAgent extends Agent
 
     //strategia ktora aktualnie gra sprzedawca
     private int negotiationStrategy = 0;
+    //ile razy kupiec pytal o cene
+    int requestsCount = 0;
 
     DecimalFormat df = new DecimalFormat("#0.00");
 
@@ -49,6 +51,9 @@ public class BookSellerAgent extends Agent
         System.out.println("Witam! Agent-sprzedawca (wersja h 2018/19) "+getAID().getName()+" jest gotów do sprzedaży");
 
         addBehaviour(new NegotiationServer_H());
+
+        addBehaviour(new NegotiationServer_A());
+        addBehaviour(new NegotiationServer_B());
 
         // Dodanie zachowania obsługującego odpowiedzi na oferty klientów (kupujących książki):
         addBehaviour(new OfferRequestsServer());
@@ -81,6 +86,7 @@ public class BookSellerAgent extends Agent
             // Próba odbioru wiadomości zgodnej z szablonem:
             ACLMessage msg = myAgent.receive(mt);
             if (msg != null) {  // jeśli nadeszła wiadomość zgodna z ustalonym wcześniej szablonem
+                requestsCount++;
                 String title = msg.getContent();  // odczytanie tytułu zamawianej książki
 
                 System.out.println("Agent-sprzedawca v.h "+getAID().getName()+" otrzymał wiadomość: "+
@@ -112,40 +118,46 @@ public class BookSellerAgent extends Agent
 
         private int negotiationRounds = 0;
 
+
         @Override
         public void action() {
-            MessageTemplate mt = MessageTemplate.MatchPerformative(ACLMessage.PROPOSE);
-            ACLMessage msg = myAgent.receive(mt);
 
-            if(msg != null) {
-                if(negotiationRounds < 4) {
-                    double buyerLastPrice = Double.valueOf(msg.getContent()); //odbiór ceny
-                    double priceProposition = (sellerLastPrice * 0.75 + buyerLastPrice * 0.25); //modyfikacja ceny
-                    sellerLastPrice = priceProposition; //aktualizacja ostatniej ceny sprzedawcy
+            if (requestsCount < 4) {
+                MessageTemplate mt = MessageTemplate.MatchPerformative(ACLMessage.PROPOSE);
+                ACLMessage msg = myAgent.receive(mt);
 
-                    ACLMessage reply = msg.createReply();
-                    reply.setContent(String.valueOf(priceProposition));
-                    reply.setPerformative(ACLMessage.PROPOSE);
+                if(msg != null) {
+                    if(negotiationRounds < 4) {
+                        double buyerLastPrice = Double.valueOf(msg.getContent()); //odbiór ceny
+                        double priceProposition = (sellerLastPrice * 0.75 + buyerLastPrice * 0.25); //modyfikacja ceny
+                        sellerLastPrice = priceProposition; //aktualizacja ostatniej ceny sprzedawcy
 
-                    System.out.println("------------------------------------------------");
-                    System.out.println("RUNDA " + (negotiationRounds+1));
-                    System.out.println("Agent-sprzedawca v.h "+getAID().getName()+" odpowiada: "+ priceProposition);
-                    negotiationRounds++;
+                        ACLMessage reply = msg.createReply();
+                        reply.setContent(String.valueOf(priceProposition));
+                        reply.setPerformative(ACLMessage.PROPOSE);
 
-                    myAgent.send(reply);
+                        System.out.println("------------------------------------------------");
+                        System.out.println("RUNDA " + (negotiationRounds+1));
+                        System.out.println("Agent-sprzedawca v.h "+getAID().getName()+" odpowiada: "+ priceProposition);
+                        negotiationRounds++;
+
+                        myAgent.send(reply);
+                    } else {
+                        ACLMessage rejectMessage = msg.createReply();
+                        rejectMessage.setPerformative(ACLMessage.REJECT_PROPOSAL);
+
+                        System.out.println("------------------------------------------------");
+                        System.out.println("Agent-sprzedawca v.h "+getAID().getName()+" nie jest zainteresowany sprzedażą");
+
+                        negotiationRounds = 0;
+
+                        myAgent.send(rejectMessage);
+                        done();
+                    }
+
                 } else {
-                    ACLMessage rejectMessage = msg.createReply();
-                    rejectMessage.setPerformative(ACLMessage.REJECT_PROPOSAL);
-
-                    System.out.println("------------------------------------------------");
-                    System.out.println("Agent-sprzedawca v.h "+getAID().getName()+" nie jest zainteresowany sprzedażą");
-
-                    myAgent.send(rejectMessage);
-                    done();
+                    block();
                 }
-
-            } else {
-                block();
             }
         }
     }
@@ -155,38 +167,90 @@ public class BookSellerAgent extends Agent
 
         @Override
         public void action() {
-            MessageTemplate mt = MessageTemplate.MatchPerformative(ACLMessage.PROPOSE);
-            ACLMessage msg = myAgent.receive(mt);
 
-            if(msg != null) {
-                if(negotiationRounds < 6) {
-                    double buyerLastPrice = Double.valueOf(msg.getContent()); //odbiór ceny
-                    double priceProposition = sellerLastPrice - 4; //modyfikacja ceny
-                    sellerLastPrice = priceProposition; //aktualizacja ostatniej ceny sprzedawcy
+            if (requestsCount >= 4 && requestsCount < 7) {
+                MessageTemplate mt = MessageTemplate.MatchPerformative(ACLMessage.PROPOSE);
+                ACLMessage msg = myAgent.receive(mt);
 
-                    ACLMessage reply = msg.createReply();
-                    reply.setContent(String.valueOf(priceProposition));
-                    reply.setPerformative(ACLMessage.PROPOSE);
+                if(msg != null) {
+                    if(negotiationRounds < 6) {
+                        double buyerLastPrice = Double.valueOf(msg.getContent()); //odbiór ceny
+                        double priceProposition = sellerLastPrice - 4; //modyfikacja ceny
+                        sellerLastPrice = priceProposition; //aktualizacja ostatniej ceny sprzedawcy
 
-                    System.out.println("------------------------------------------------");
-                    System.out.println("RUNDA " + (negotiationRounds+1));
-                    System.out.println("Agent-sprzedawca v.h "+getAID().getName()+" odpowiada: "+ priceProposition);
-                    negotiationRounds++;
+                        ACLMessage reply = msg.createReply();
+                        reply.setContent(String.valueOf(priceProposition));
+                        reply.setPerformative(ACLMessage.PROPOSE);
 
-                    myAgent.send(reply);
+                        System.out.println("------------------------------------------------");
+                        System.out.println("RUNDA " + (negotiationRounds+1));
+                        System.out.println("Agent-sprzedawca v.h "+getAID().getName()+" odpowiada: "+ priceProposition);
+                        negotiationRounds++;
+
+                        myAgent.send(reply);
+                    } else {
+                        ACLMessage rejectMessage = msg.createReply();
+                        rejectMessage.setPerformative(ACLMessage.REJECT_PROPOSAL);
+
+                        System.out.println("------------------------------------------------");
+                        System.out.println("Agent-sprzedawca v.h "+getAID().getName()+" nie jest zainteresowany sprzedażą");
+
+                        negotiationRounds = 0;
+
+                        myAgent.send(rejectMessage);
+                        done();
+                    }
+
                 } else {
-                    ACLMessage rejectMessage = msg.createReply();
-                    rejectMessage.setPerformative(ACLMessage.REJECT_PROPOSAL);
-
-                    System.out.println("------------------------------------------------");
-                    System.out.println("Agent-sprzedawca v.h "+getAID().getName()+" nie jest zainteresowany sprzedażą");
-
-                    myAgent.send(rejectMessage);
-                    done();
+                    block();
                 }
+            }
+        }
+    }
 
-            } else {
-                block();
+    class NegotiationServer_B extends CyclicBehaviour{
+
+        private int negotiationRounds = 0;
+
+        @Override
+        public void action() {
+
+            if (requestsCount >= 7 && requestsCount < 10) {
+                MessageTemplate mt = MessageTemplate.MatchPerformative(ACLMessage.PROPOSE);
+                ACLMessage msg = myAgent.receive(mt);
+
+                if(msg != null) {
+                    if(negotiationRounds < 6) {
+                        double buyerLastPrice = Double.valueOf(msg.getContent()); //odbiór ceny
+                        double priceProposition = (sellerLastPrice+buyerLastPrice)/2; //modyfikacja ceny
+                        sellerLastPrice = priceProposition; //aktualizacja ostatniej ceny sprzedawcy
+
+                        ACLMessage reply = msg.createReply();
+                        reply.setContent(String.valueOf(priceProposition));
+                        reply.setPerformative(ACLMessage.PROPOSE);
+
+                        System.out.println("------------------------------------------------");
+                        System.out.println("RUNDA " + (negotiationRounds+1));
+                        System.out.println("Agent-sprzedawca v.h "+getAID().getName()+" odpowiada: "+ priceProposition);
+                        negotiationRounds++;
+
+                        myAgent.send(reply);
+                    } else {
+                        ACLMessage rejectMessage = msg.createReply();
+                        rejectMessage.setPerformative(ACLMessage.REJECT_PROPOSAL);
+
+                        System.out.println("------------------------------------------------");
+                        System.out.println("Agent-sprzedawca v.h "+getAID().getName()+" nie jest zainteresowany sprzedażą");
+
+                        negotiationRounds = 0;
+
+                        myAgent.send(rejectMessage);
+                        done();
+                    }
+
+                } else {
+                    block();
+                }
             }
         }
     }
