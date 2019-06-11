@@ -35,6 +35,7 @@ public class BookSellerAgent extends Agent
         Random randomGenerator = new Random();    // generator liczb losowych
 
         catalogue.put("Zamek", 280+randomGenerator.nextInt(200));        // nazwa książki jako klucz, cena jako wartość
+//        catalogue.put("Zamek",80);    //przy tej cenie zawsze kupi
         catalogue.put("Proces", 200+randomGenerator.nextInt(170));
         catalogue.put("Opowiadania", 110+randomGenerator.nextInt(50));
         catalogue.put("Agent 007", 120+randomGenerator.nextInt(70));

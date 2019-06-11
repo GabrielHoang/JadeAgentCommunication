@@ -160,9 +160,19 @@ public class BookBuyerAgent extends Agent {
                                 myAgent.send(buyerPriceReply);
                                 System.out.println("Agent-kupiec  "+getAID().getName()+" proponuje: " + bestPrice);
                             } else {
-                                step_num = 3;
+                                step_num = 4;
                                 System.out.println("------------------------------------------------");
                                 System.out.println("Agent-kupiec  "+getAID().getName()+" zgadza się na cenę: " + sellerLastPrice);
+
+                                ACLMessage order = new ACLMessage(ACLMessage.ACCEPT_PROPOSAL);
+                                order.addReceiver(bestSeller);
+                                order.setContent(targetBookTitle);
+                                order.setConversationId("book-trade");
+                                order.setReplyWith("order"+System.currentTimeMillis());
+                                myAgent.send(order);
+                                mt = MessageTemplate.and(MessageTemplate.MatchConversationId("book-trade"),
+                                        MessageTemplate.MatchInReplyTo(order.getReplyWith()));
+
                             }
 
                     } else if (sellerPriceReject !=null) {
@@ -170,17 +180,6 @@ public class BookBuyerAgent extends Agent {
                         step_num = 5;
                     }
                     block();
-                    break;
-                case 3:      // wysłanie zamówienia do sprzedawcy, który złożył najlepszą ofertę
-                    ACLMessage order = new ACLMessage(ACLMessage.ACCEPT_PROPOSAL);
-                    order.addReceiver(bestSeller);
-                    order.setContent(targetBookTitle);
-                    order.setConversationId("book-trade");
-                    order.setReplyWith("order"+System.currentTimeMillis());
-                    myAgent.send(order);
-                    mt = MessageTemplate.and(MessageTemplate.MatchConversationId("book-trade"),
-                            MessageTemplate.MatchInReplyTo(order.getReplyWith()));
-                    step_num = step_num + 1;
                     break;
                 case 4:        // odbiór odpowiedzi na zamównienie
                     reply = myAgent.receive(mt);
