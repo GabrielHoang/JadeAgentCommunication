@@ -35,6 +35,7 @@ public class BookBuyerAgent extends Agent {
     private AID[] sellerAgents = {
             new AID("seller1", AID.ISLOCALNAME),
             new AID("seller2", AID.ISLOCALNAME)};
+    private int step_num = 0;   // numer kroku
 
     // Inicjalizacja klasy agenta:
     protected void setup()
@@ -79,7 +80,6 @@ public class BookBuyerAgent extends Agent {
         private int bestPrice;      // najlepsza cena
         private int repliesCnt = 0; // liczba odpowiedzi od agentów
         private MessageTemplate mt; // szablon odpowiedzi
-        private int step_num = 0;   // numer kroku
 
         public void action()
         {

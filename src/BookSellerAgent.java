@@ -23,6 +23,9 @@ public class BookSellerAgent extends Agent
 
     private double sellerLastPrice;
 
+    //strategia ktora aktualnie gra sprzedawca
+    private int negotiationStrategy = 0;
+
     DecimalFormat df = new DecimalFormat("#0.00");
 
 
@@ -45,7 +48,7 @@ public class BookSellerAgent extends Agent
 
         System.out.println("Witam! Agent-sprzedawca (wersja h 2018/19) "+getAID().getName()+" jest gotów do sprzedaży");
 
-        addBehaviour(new NegotiationServer());
+        addBehaviour(new NegotiationServer_H());
 
         // Dodanie zachowania obsługującego odpowiedzi na oferty klientów (kupujących książki):
         addBehaviour(new OfferRequestsServer());
@@ -105,7 +108,7 @@ public class BookSellerAgent extends Agent
         }
     } // Koniec klasy wewnętrznej będącej rozszerzeniem klasy CyclicBehaviour
 
-    class NegotiationServer extends CyclicBehaviour{
+    class NegotiationServer_H extends CyclicBehaviour{
 
         private int negotiationRounds = 0;
 
@@ -118,6 +121,47 @@ public class BookSellerAgent extends Agent
                 if(negotiationRounds < 4) {
                     double buyerLastPrice = Double.valueOf(msg.getContent()); //odbiór ceny
                     double priceProposition = (sellerLastPrice * 0.75 + buyerLastPrice * 0.25); //modyfikacja ceny
+                    sellerLastPrice = priceProposition; //aktualizacja ostatniej ceny sprzedawcy
+
+                    ACLMessage reply = msg.createReply();
+                    reply.setContent(String.valueOf(priceProposition));
+                    reply.setPerformative(ACLMessage.PROPOSE);
+
+                    System.out.println("------------------------------------------------");
+                    System.out.println("RUNDA " + (negotiationRounds+1));
+                    System.out.println("Agent-sprzedawca v.h "+getAID().getName()+" odpowiada: "+ priceProposition);
+                    negotiationRounds++;
+
+                    myAgent.send(reply);
+                } else {
+                    ACLMessage rejectMessage = msg.createReply();
+                    rejectMessage.setPerformative(ACLMessage.REJECT_PROPOSAL);
+
+                    System.out.println("------------------------------------------------");
+                    System.out.println("Agent-sprzedawca v.h "+getAID().getName()+" nie jest zainteresowany sprzedażą");
+
+                    myAgent.send(rejectMessage);
+                    done();
+                }
+
+            } else {
+                block();
+            }
+        }
+    }
+    class NegotiationServer_A extends CyclicBehaviour{
+
+        private int negotiationRounds = 0;
+
+        @Override
+        public void action() {
+            MessageTemplate mt = MessageTemplate.MatchPerformative(ACLMessage.PROPOSE);
+            ACLMessage msg = myAgent.receive(mt);
+
+            if(msg != null) {
+                if(negotiationRounds < 6) {
+                    double buyerLastPrice = Double.valueOf(msg.getContent()); //odbiór ceny
+                    double priceProposition = sellerLastPrice - 4; //modyfikacja ceny
                     sellerLastPrice = priceProposition; //aktualizacja ostatniej ceny sprzedawcy
 
                     ACLMessage reply = msg.createReply();
